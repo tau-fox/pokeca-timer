@@ -16,23 +16,22 @@
 <body>
   <main class="app" aria-live="polite">
     <section class="player player-a" data-player="0">
-      <div class="player-header">
-        <label for="playerName0" class="visually-hidden">左プレイヤー名</label>
-        <input id="playerName0" class="player-name" type="text" value="プレイヤーA" maxlength="12" autocomplete="off" />
+      <div class="player-face face-cw">
+        <div id="roleBadge0" class="role-badge" aria-label="左側の役割"></div>
+
+        <div class="player-time-wrap">
+          <div class="small-label">使用時間</div>
+          <div id="usedTime0" class="used-time">00:00</div>
+        </div>
+
+        <button id="pauseBtn0" class="button pause-button" type="button" disabled>
+          <span class="button-label">一時停止</span>
+        </button>
+
+        <button id="actionBtn0" class="button action-button" type="button">
+          <span class="button-label">対戦開始</span>
+        </button>
       </div>
-
-      <div class="player-time-wrap">
-        <div class="small-label">使用時間</div>
-        <div id="usedTime0" class="used-time">00:00</div>
-      </div>
-
-      <button id="pauseBtn0" class="button pause-button" type="button" disabled>
-        <span class="button-label">一時停止</span>
-      </button>
-
-      <button id="actionBtn0" class="button action-button" type="button">
-        <span class="button-label">対戦開始</span>
-      </button>
     </section>
 
     <section class="center-panel">
@@ -41,38 +40,29 @@
       <div id="statusText" class="status-text">先攻側の「対戦開始」を押してください</div>
       <div class="center-actions">
         <button id="resetBtn" class="reset-button" type="button">リセット</button>
-        <button id="swapNamesBtn" class="sub-button" type="button">左右入替</button>
         <button id="rotateFlipBtn" class="sub-button" type="button">向き反転</button>
       </div>
     </section>
 
     <section class="player player-b" data-player="1">
-      <div class="player-header">
-        <label for="playerName1" class="visually-hidden">右プレイヤー名</label>
-        <input id="playerName1" class="player-name" type="text" value="プレイヤーB" maxlength="12" autocomplete="off" />
+      <div class="player-face face-ccw">
+        <div id="roleBadge1" class="role-badge" aria-label="右側の役割"></div>
+
+        <div class="player-time-wrap">
+          <div class="small-label">使用時間</div>
+          <div id="usedTime1" class="used-time">00:00</div>
+        </div>
+
+        <button id="pauseBtn1" class="button pause-button" type="button" disabled>
+          <span class="button-label">一時停止</span>
+        </button>
+
+        <button id="actionBtn1" class="button action-button" type="button">
+          <span class="button-label">対戦開始</span>
+        </button>
       </div>
-
-      <div class="player-time-wrap">
-        <div class="small-label">使用時間</div>
-        <div id="usedTime1" class="used-time">00:00</div>
-      </div>
-
-      <button id="pauseBtn1" class="button pause-button" type="button" disabled>
-        <span class="button-label">一時停止</span>
-      </button>
-
-      <button id="actionBtn1" class="button action-button" type="button">
-        <span class="button-label">対戦開始</span>
-      </button>
     </section>
   </main>
-
-  <div id="rotateNotice" class="rotate-notice" hidden>
-    <div class="rotate-card">
-      <div class="rotate-icon">↻</div>
-      <div>疑似横向き表示中</div>
-    </div>
-  </div>
 
   <script src="app.js" defer></script>
 </body>

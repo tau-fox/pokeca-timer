@@ -7,6 +7,7 @@
   const state = {
     mode: 'ready', // ready | running | paused | finished
     activePlayer: null,
+    firstPlayer: null,
     remainingMs: MATCH_LENGTH_MS,
     usedMs: [0, 0],
     lastTickAt: null,
@@ -17,12 +18,11 @@
     mainTimer: document.getElementById('mainTimer'),
     statusText: document.getElementById('statusText'),
     resetBtn: document.getElementById('resetBtn'),
-    swapNamesBtn: document.getElementById('swapNamesBtn'),
     rotateFlipBtn: document.getElementById('rotateFlipBtn'),
     usedTime: [document.getElementById('usedTime0'), document.getElementById('usedTime1')],
     pauseBtn: [document.getElementById('pauseBtn0'), document.getElementById('pauseBtn1')],
     actionBtn: [document.getElementById('actionBtn0'), document.getElementById('actionBtn1')],
-    playerName: [document.getElementById('playerName0'), document.getElementById('playerName1')],
+    roleBadge: [document.getElementById('roleBadge0'), document.getElementById('roleBadge1')],
     playerPanel: Array.from(document.querySelectorAll('.player')),
   };
 
@@ -44,9 +44,18 @@
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 
-  function getPlayerName(index) {
-    const raw = els.playerName[index].value.trim();
-    return raw || `プレイヤー${index === 0 ? 'A' : 'B'}`;
+  function playerSideLabel(index) {
+    return index === 0 ? '左側' : '右側';
+  }
+
+  function playerRole(index) {
+    if (state.firstPlayer == null) return '';
+    return state.firstPlayer === index ? '先攻' : '後攻';
+  }
+
+  function activeRoleText() {
+    if (state.activePlayer == null || state.firstPlayer == null) return '';
+    return playerRole(state.activePlayer);
   }
 
   function setButtonLabel(button, label, hide = false) {
@@ -68,6 +77,15 @@
     setButtonLabel(button, '一時停止', hidden);
   }
 
+  function renderRoleBadges() {
+    els.roleBadge.forEach((badge, index) => {
+      const role = playerRole(index);
+      badge.textContent = role;
+      badge.classList.toggle('is-first', role === '先攻');
+      badge.classList.toggle('is-second', role === '後攻');
+    });
+  }
+
   function render() {
     els.mainTimer.textContent = formatTime(state.remainingMs);
     els.mainTimer.classList.toggle('is-warning', state.remainingMs > 0 && state.remainingMs <= WARNING_MS);
@@ -80,6 +98,8 @@
       panel.classList.toggle('is-active', state.activePlayer === index && state.mode === 'running');
     });
 
+    renderRoleBadges();
+
     if (state.mode === 'ready') {
       els.statusText.textContent = '先攻側の「対戦開始」を押してください';
       setAction(0, '対戦開始', true);
@@ -91,7 +111,7 @@
 
     if (state.mode === 'running') {
       const other = state.activePlayer === 0 ? 1 : 0;
-      els.statusText.textContent = `${getPlayerName(state.activePlayer)}のターン中`;
+      els.statusText.textContent = `${activeRoleText()}のターン中`;
       setAction(state.activePlayer, 'ターン終了', true);
       setAction(other, '対戦開始', false, true);
       setPause(0, true);
@@ -165,6 +185,7 @@
     if (state.mode !== 'ready') return;
     state.mode = 'running';
     state.activePlayer = playerIndex;
+    state.firstPlayer = playerIndex;
     state.lastTickAt = Date.now();
     requestWakeLock();
     render();
@@ -210,18 +231,12 @@
     if (!ok) return;
     state.mode = 'ready';
     state.activePlayer = null;
+    state.firstPlayer = null;
     state.remainingMs = MATCH_LENGTH_MS;
     state.usedMs = [0, 0];
     state.lastTickAt = null;
     releaseWakeLock();
     render();
-  }
-
-  function swapNames() {
-    if (state.mode !== 'ready') return;
-    const left = els.playerName[0].value;
-    els.playerName[0].value = els.playerName[1].value;
-    els.playerName[1].value = left;
   }
 
   function applyPseudoDirection() {
@@ -248,7 +263,6 @@
   });
 
   els.resetBtn.addEventListener('click', resetMatch);
-  els.swapNamesBtn.addEventListener('click', swapNames);
   els.rotateFlipBtn.addEventListener('click', flipPseudoDirection);
 
   document.addEventListener('visibilitychange', () => {
