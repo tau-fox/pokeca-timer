@@ -18,6 +18,7 @@
     statusText: document.getElementById('statusText'),
     resetBtn: document.getElementById('resetBtn'),
     swapNamesBtn: document.getElementById('swapNamesBtn'),
+    rotateFlipBtn: document.getElementById('rotateFlipBtn'),
     usedTime: [document.getElementById('usedTime0'), document.getElementById('usedTime1')],
     pauseBtn: [document.getElementById('pauseBtn0'), document.getElementById('pauseBtn1')],
     actionBtn: [document.getElementById('actionBtn0'), document.getElementById('actionBtn1')],
@@ -223,6 +224,17 @@
     els.playerName[1].value = left;
   }
 
+  function applyPseudoDirection() {
+    const direction = localStorage.getItem('pokecaTimerPseudoDirection') || 'cw';
+    document.body.classList.toggle('pseudo-ccw', direction === 'ccw');
+  }
+
+  function flipPseudoDirection() {
+    const current = localStorage.getItem('pokecaTimerPseudoDirection') || 'cw';
+    localStorage.setItem('pokecaTimerPseudoDirection', current === 'cw' ? 'ccw' : 'cw');
+    applyPseudoDirection();
+  }
+
   els.actionBtn.forEach((button, index) => {
     button.addEventListener('click', () => {
       if (state.mode === 'ready') startMatch(index);
@@ -237,6 +249,7 @@
 
   els.resetBtn.addEventListener('click', resetMatch);
   els.swapNamesBtn.addEventListener('click', swapNames);
+  els.rotateFlipBtn.addEventListener('click', flipPseudoDirection);
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && state.mode === 'running') {
@@ -253,6 +266,7 @@
     });
   }
 
+  applyPseudoDirection();
   render();
   requestAnimationFrame(tick);
 })();

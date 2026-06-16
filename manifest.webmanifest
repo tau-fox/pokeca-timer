@@ -1,11 +1,11 @@
 {
   "name": "ポケカ対戦タイマー",
   "short_name": "ポケカタイマー",
-  "description": "iPhone横向き用のポケカ25分対戦タイマー",
-  "start_url": "./index.html",
+  "description": "iPhone回転ロックONでも使えるポケカ25分対戦タイマー",
+  "start_url": "./index.html?v=2",
   "scope": "./",
   "display": "standalone",
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#111827",
   "theme_color": "#111827",
   "icons": [
