@@ -183,6 +183,20 @@
     button:disabled { cursor:default; opacity:.34; box-shadow:none; }
     button.label-hidden .button-label { visibility:hidden; }
 
+
+    .center-version-badge {
+      flex: 0 0 auto;
+      margin-top: 3px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(17,24,39,.52);
+      color: rgba(255,255,255,.68);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      line-height: 1.25;
+    }
     .format-buttons {
       flex: 0 0 auto;
       display:flex;
@@ -368,6 +382,7 @@
         <button id="formatBo3Btn" class="format-button" type="button">BO3</button>
       </div>
       <div class="match-label">試合残り時間</div>
+      <div class="center-version-badge">v1.3.1</div>
       <div id="mainTimer" class="main-timer">25:00</div>
       <div id="statusText" class="status-text">先攻側の「対戦開始」を押してください</div>
       <div class="center-actions">
