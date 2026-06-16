@@ -310,6 +310,12 @@
         transform-origin: center center;
       }
 
+      @media (display-mode: standalone) {
+        .app {
+          top: calc(50% + max(46px, env(safe-area-inset-top)));
+        }
+      }
+
       .app.flipped {
         transform: translate(-50%, -50%) rotate(calc(var(--pseudo-landscape-rotation) + 180deg));
       }
