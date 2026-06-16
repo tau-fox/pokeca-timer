@@ -17,20 +17,28 @@
   <main class="app" aria-live="polite">
     <section class="player player-a" data-player="0">
       <div class="player-face face-cw">
-        <div id="roleBadge0" class="role-badge" aria-label="左側の役割"></div>
-
-        <div class="player-time-wrap">
-          <div class="small-label">使用時間</div>
-          <div id="usedTime0" class="used-time">00:00</div>
+        <div class="rotate-slot badge-slot">
+          <div id="roleBadge0" class="role-badge" aria-label="左側の役割"></div>
         </div>
 
-        <button id="pauseBtn0" class="button pause-button" type="button" disabled>
-          <span class="button-label">一時停止</span>
-        </button>
+        <div class="rotate-slot time-slot">
+          <div class="player-time-wrap">
+            <div class="small-label">使用時間</div>
+            <div id="usedTime0" class="used-time">00:00</div>
+          </div>
+        </div>
 
-        <button id="actionBtn0" class="button action-button" type="button">
-          <span class="button-label">対戦開始</span>
-        </button>
+        <div class="rotate-slot pause-slot">
+          <button id="pauseBtn0" class="button pause-button" type="button" disabled>
+            <span class="button-label">一時停止</span>
+          </button>
+        </div>
+
+        <div class="rotate-slot action-slot">
+          <button id="actionBtn0" class="button action-button" type="button">
+            <span class="button-label">対戦開始</span>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -46,20 +54,28 @@
 
     <section class="player player-b" data-player="1">
       <div class="player-face face-ccw">
-        <div id="roleBadge1" class="role-badge" aria-label="右側の役割"></div>
-
-        <div class="player-time-wrap">
-          <div class="small-label">使用時間</div>
-          <div id="usedTime1" class="used-time">00:00</div>
+        <div class="rotate-slot badge-slot">
+          <div id="roleBadge1" class="role-badge" aria-label="右側の役割"></div>
         </div>
 
-        <button id="pauseBtn1" class="button pause-button" type="button" disabled>
-          <span class="button-label">一時停止</span>
-        </button>
+        <div class="rotate-slot time-slot">
+          <div class="player-time-wrap">
+            <div class="small-label">使用時間</div>
+            <div id="usedTime1" class="used-time">00:00</div>
+          </div>
+        </div>
 
-        <button id="actionBtn1" class="button action-button" type="button">
-          <span class="button-label">対戦開始</span>
-        </button>
+        <div class="rotate-slot pause-slot">
+          <button id="pauseBtn1" class="button pause-button" type="button" disabled>
+            <span class="button-label">一時停止</span>
+          </button>
+        </div>
+
+        <div class="rotate-slot action-slot">
+          <button id="actionBtn1" class="button action-button" type="button">
+            <span class="button-label">対戦開始</span>
+          </button>
+        </div>
       </div>
     </section>
   </main>

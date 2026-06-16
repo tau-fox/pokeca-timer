@@ -3,7 +3,7 @@
   "short_name": "ポケカタイマー",
   "description": "iPhone横向き用のポケカ対戦タイマー",
   "lang": "ja",
-  "start_url": "./index.html?v=3",
+  "start_url": "./index.html?v=4",
   "scope": "./",
   "display": "standalone",
   "background_color": "#111827",

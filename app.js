@@ -1,3 +1,4 @@
+
 (() => {
   'use strict';
 
@@ -5,7 +6,7 @@
   const WARNING_MS = 60 * 1000;
 
   const state = {
-    mode: 'ready', // ready | running | paused | finished
+    mode: 'ready',
     activePlayer: null,
     firstPlayer: null,
     remainingMs: MATCH_LENGTH_MS,
@@ -15,6 +16,8 @@
   };
 
   const els = {
+    root: document.documentElement,
+    app: document.querySelector('.app'),
     mainTimer: document.getElementById('mainTimer'),
     statusText: document.getElementById('statusText'),
     resetBtn: document.getElementById('resetBtn'),
@@ -24,6 +27,7 @@
     actionBtn: [document.getElementById('actionBtn0'), document.getElementById('actionBtn1')],
     roleBadge: [document.getElementById('roleBadge0'), document.getElementById('roleBadge1')],
     playerPanel: Array.from(document.querySelectorAll('.player')),
+    playerFace: Array.from(document.querySelectorAll('.player-face')),
   };
 
   function clampMs(value) {
@@ -42,10 +46,6 @@
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  }
-
-  function playerSideLabel(index) {
-    return index === 0 ? '左側' : '右側';
   }
 
   function playerRole(index) {
@@ -163,16 +163,11 @@
 
   function applyElapsed(now) {
     if (state.mode !== 'running' || state.lastTickAt == null || state.activePlayer == null) return;
-
     const elapsed = Math.max(0, now - state.lastTickAt);
     state.lastTickAt = now;
-
     state.remainingMs = clampMs(state.remainingMs - elapsed);
     state.usedMs[state.activePlayer] = clampMs(state.usedMs[state.activePlayer] + elapsed);
-
-    if (state.remainingMs <= 0) {
-      finishMatch();
-    }
+    if (state.remainingMs <= 0) finishMatch();
   }
 
   function tick() {
@@ -250,6 +245,26 @@
     applyPseudoDirection();
   }
 
+  function updateViewportVars() {
+    els.root.style.setProperty('--viewport-w', `${window.innerWidth}px`);
+    els.root.style.setProperty('--viewport-h', `${window.innerHeight}px`);
+  }
+
+  function layoutRotatedFaces() {
+    els.playerPanel.forEach((panel, index) => {
+      const face = els.playerFace[index];
+      const panelWidth = Math.max(0, panel.clientWidth - 6);
+      const panelHeight = Math.max(0, panel.clientHeight - 6);
+      face.style.width = `${panelHeight}px`;
+      face.style.height = `${panelWidth}px`;
+    });
+  }
+
+  function updateLayout() {
+    updateViewportVars();
+    requestAnimationFrame(layoutRotatedFaces);
+  }
+
   els.actionBtn.forEach((button, index) => {
     button.addEventListener('click', () => {
       if (state.mode === 'ready') startMatch(index);
@@ -268,11 +283,16 @@
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && state.mode === 'running') {
       requestWakeLock();
+      updateLayout();
     } else if (document.visibilityState !== 'visible') {
       applyElapsed(Date.now());
       releaseWakeLock();
     }
   });
+
+  window.addEventListener('resize', updateLayout);
+  window.addEventListener('orientationchange', () => setTimeout(updateLayout, 60));
+  window.addEventListener('load', updateLayout);
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -281,6 +301,7 @@
   }
 
   applyPseudoDirection();
+  updateLayout();
   render();
   requestAnimationFrame(tick);
 })();
