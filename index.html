@@ -156,6 +156,11 @@
       margin:0 .045em;
     }
 
+    .main-timer .timer-text {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
 
     .match-label { flex:0 0 auto; font-size:clamp(14px,1.7vw,22px); }
     .main-timer {
@@ -312,13 +317,12 @@
 
       @media (display-mode: standalone) {
         .app {
-          top: 50%;
           /*
-            ホーム画面追加後はステータスバー/Dynamic Islandぶんを上下に逃がす。
-            疑似横向きでは .app の width が見た目上の縦方向サイズになるため、
-            ここを少し小さくして上下に同程度の余白を作る。
+            ホーム画面追加後は、疑似横向きキャンバスを少しだけ小さくしつつ
+            わずかに下へ寄せて、上下の余白を近づける。
           */
-          width: calc(100dvh - max(96px, calc(env(safe-area-inset-top) * 2 + 48px)));
+          top: calc(50% + 28px);
+          width: calc(100dvh - 64px);
         }
       }
 
@@ -419,6 +423,8 @@
       let activeAlarmGain = null;
       let activeAlarmLoopTimer = null;
       let dialogMode = null;
+      let mainTimerFitPending = false;
+      let lastMainTimerHtml = '';
 
       function getAudioContext() {
         if (audioCtx) return audioCtx;
@@ -620,6 +626,38 @@
         const t = formatTimeParts(ms, mode);
         return `<span class="timer-text"><span class="timer-num">${t.min}</span><span class="timer-colon">:</span><span class="timer-num">${t.sec}</span></span>`;
       }
+      function fitMainTimerToPanel() {
+        const el = els.mainTimer;
+        const text = el.querySelector('.timer-text');
+        if (!el || !text) return;
+
+        const maxWidth = Math.max(1, el.clientWidth * 0.96);
+        const maxHeight = Math.max(1, el.clientHeight * 0.92);
+
+        let low = 24;
+        let high = 260;
+
+        for (let i = 0; i < 12; i += 1) {
+          const mid = (low + high) / 2;
+          el.style.fontSize = `${mid}px`;
+
+          if (text.scrollWidth <= maxWidth && text.scrollHeight <= maxHeight) {
+            low = mid;
+          } else {
+            high = mid;
+          }
+        }
+
+        el.style.fontSize = `${Math.floor(low)}px`;
+      }
+      function scheduleMainTimerFit() {
+        if (mainTimerFitPending) return;
+        mainTimerFitPending = true;
+        requestAnimationFrame(() => {
+          mainTimerFitPending = false;
+          fitMainTimerToPanel();
+        });
+      }
       function playerRole(i){ if(state.firstPlayer==null) return ''; return state.firstPlayer===i ? '先攻' : '後攻'; }
       function activeRoleText(){ if(state.activePlayer==null || state.firstPlayer==null) return ''; return playerRole(state.activePlayer); }
       function setButtonLabel(button, label, hide=false){ const span=button.querySelector('.button-label'); span.textContent=label; button.classList.toggle('label-hidden', hide); }
@@ -645,7 +683,12 @@
       function renderActivePanels(){ for(let i=0;i<2;i++){ const active=state.activePlayer===i && state.mode==='running'; els.timeZone[i].classList.toggle('zone-active', active); els.pauseZone[i].classList.toggle('zone-active', active); els.actionZone[i].classList.toggle('zone-active', active);} }
       function renderFlip(){ els.appRoot.classList.toggle('flipped', state.flipped); }
       function render(){
-        els.mainTimer.innerHTML=timeHtml(state.remainingMs, 'ceil');
+        const nextMainTimerHtml = timeHtml(state.remainingMs, 'ceil');
+        if (nextMainTimerHtml !== lastMainTimerHtml) {
+          els.mainTimer.innerHTML = nextMainTimerHtml;
+          lastMainTimerHtml = nextMainTimerHtml;
+          scheduleMainTimerFit();
+        }
         els.mainTimer.classList.toggle('is-warning', state.remainingMs>0 && state.remainingMs<=WARNING_MS);
         els.mainTimer.classList.toggle('is-finished', state.mode==='finished');
         els.usedTime[0].innerHTML=timeHtml(state.usedMs[0], 'floor');
@@ -722,6 +765,8 @@
       els.endDialogCancel.addEventListener('click', handleDialogCancel);
       if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./service-worker.js').catch(()=>{}); }); }
       document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && state.mode==='running'){ requestWakeLock(); } else if(document.visibilityState!=='visible'){ applyElapsed(Date.now()); releaseWakeLock(); } });
+      window.addEventListener('resize', scheduleMainTimerFit);
+      window.addEventListener('orientationchange', scheduleMainTimerFit);
       loadFlipState(); render(); requestAnimationFrame(tick);
     })();
   </script>
