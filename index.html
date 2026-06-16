@@ -312,7 +312,13 @@
 
       @media (display-mode: standalone) {
         .app {
-          top: calc(50% + max(46px, env(safe-area-inset-top)));
+          top: 50%;
+          /*
+            ホーム画面追加後はステータスバー/Dynamic Islandぶんを上下に逃がす。
+            疑似横向きでは .app の width が見た目上の縦方向サイズになるため、
+            ここを少し小さくして上下に同程度の余白を作る。
+          */
+          width: calc(100dvh - max(96px, calc(env(safe-area-inset-top) * 2 + 48px)));
         }
       }
 
