@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ポケカタイマー" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <title>ポケカ対戦タイマー</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app" aria-live="polite">
+    <section class="player player-a" data-player="0">
+      <div class="player-header">
+        <label for="playerName0" class="visually-hidden">左プレイヤー名</label>
+        <input id="playerName0" class="player-name" type="text" value="プレイヤーA" maxlength="12" autocomplete="off" />
+      </div>
+
+      <div class="player-time-wrap">
+        <div class="small-label">使用時間</div>
+        <div id="usedTime0" class="used-time">00:00</div>
+      </div>
+
+      <button id="pauseBtn0" class="button pause-button" type="button" disabled>
+        <span class="button-label">一時停止</span>
+      </button>
+
+      <button id="actionBtn0" class="button action-button" type="button">
+        <span class="button-label">対戦開始</span>
+      </button>
+    </section>
+
+    <section class="center-panel">
+      <div class="match-label">試合残り時間</div>
+      <div id="mainTimer" class="main-timer">25:00</div>
+      <div id="statusText" class="status-text">先攻側の「対戦開始」を押してください</div>
+      <div class="center-actions">
+        <button id="resetBtn" class="reset-button" type="button">リセット</button>
+        <button id="swapNamesBtn" class="sub-button" type="button">左右入替</button>
+      </div>
+    </section>
+
+    <section class="player player-b" data-player="1">
+      <div class="player-header">
+        <label for="playerName1" class="visually-hidden">右プレイヤー名</label>
+        <input id="playerName1" class="player-name" type="text" value="プレイヤーB" maxlength="12" autocomplete="off" />
+      </div>
+
+      <div class="player-time-wrap">
+        <div class="small-label">使用時間</div>
+        <div id="usedTime1" class="used-time">00:00</div>
+      </div>
+
+      <button id="pauseBtn1" class="button pause-button" type="button" disabled>
+        <span class="button-label">一時停止</span>
+      </button>
+
+      <button id="actionBtn1" class="button action-button" type="button">
+        <span class="button-label">対戦開始</span>
+      </button>
+    </section>
+  </main>
+
+  <div id="rotateNotice" class="rotate-notice">
+    <div class="rotate-card">
+      <div class="rotate-icon">↻</div>
+      <div>iPhoneを横向きにしてください</div>
+    </div>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
