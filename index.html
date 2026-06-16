@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#090f1d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ポケカタイマー" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <title>ポケカ対戦タイマー</title>
+  <style>
+    :root {
+      --bg: #090f1d;
+      --panel: #202938;
+      --panel2: #2a3137;
+      --active: #30415f;
+      --text: #f9fafb;
+      --muted: #cbd5e1;
+      --line: rgba(255,255,255,.14);
+      --blue: #3155f6;
+      --brown: #6b4a2b;
+      --green: #15803d;
+      --red: #7f1d1d;
+      --slate: #41598c;
+      --shadow: 0 18px 45px rgba(0,0,0,.28);
+      --pseudo-landscape-rotation: 90deg;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      width:100%; min-height:100%; margin:0; overflow:hidden;
+      background:var(--bg); color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      overscroll-behavior:none; touch-action:manipulation; user-select:none; -webkit-user-select:none;
+    }
+    body { min-height:100dvh; }
+
+    .app {
+      width:100vw; height:100dvh;
+      padding:max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+      display:flex; gap:8px; align-items:stretch;
+      position:relative;
+    }
+
+    .col-time, .col-pause, .col-action, .center-panel {
+      min-width:0; min-height:0; overflow:hidden;
+      border:1px solid var(--line); box-shadow:var(--shadow);
+      background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.018)), var(--panel);
+    }
+    .col-time {
+      width:clamp(60px, 7vw, 82px);
+      border-radius:16px; padding:8px 5px;
+      display:flex; flex-direction:column; gap:8px;
+      background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.02)), var(--panel2);
+    }
+    .col-pause {
+      width:clamp(48px, 5.6vw, 66px);
+      border-radius:16px; padding:6px;
+      display:flex;
+    }
+    .col-action {
+      width:clamp(88px, 10.6vw, 124px);
+      border-radius:22px; padding:10px;
+      display:flex;
+    }
+    .center-panel {
+      flex:1 1 auto;
+      border-radius:22px; padding:12px 16px;
+      display:flex; flex-direction:column; align-items:center; text-align:center;
+      min-width:0;
+    }
+    .zone-active {
+      background:linear-gradient(180deg, rgba(96,165,250,.20), rgba(255,255,255,.02)), var(--active) !important;
+      border-color:rgba(147,197,253,.55);
+    }
+
+    /* default order: left action | left pause | left time | center | right time | right pause | right action */
+    .left-action { order:1; }
+    .left-pause  { order:2; }
+    .left-time   { order:3; }
+    .center-panel{ order:4; }
+    .right-time  { order:5; }
+    .right-pause { order:6; }
+    .right-action{ order:7; }
+    .app.flipped { transform: rotate(180deg); transform-origin: center center; }
+
+    button { font-family:inherit; }
+    .big-action-button, .pause-button, .reset-button, .flip-button {
+      border:0; color:var(--text); font-weight:900; letter-spacing:.04em;
+      box-shadow:inset 0 -3px 0 rgba(0,0,0,.22); cursor:pointer;
+    }
+    .big-action-button {
+      width:100%; height:100%; border-radius:18px; background:var(--blue);
+      position:relative;
+      display:block;
+      font-size:clamp(20px,2.5vw,34px);
+    }
+    .big-action-button.is-resume { background:var(--green); }
+    .big-action-button .button-label,
+    .pause-button .button-label {
+      position:absolute;
+      left:50%;
+      top:50%;
+      display:block;
+      white-space:nowrap;
+      transform-origin:center center;
+    }
+
+    .left-action .button-label { transform:translate(-50%, -50%) rotate(90deg); }
+    .right-action .button-label { transform:translate(-50%, -50%) rotate(-90deg); }
+
+    .pause-button {
+      width:100%; height:100%; border-radius:14px; background:var(--brown);
+      position:relative;
+      display:block;
+      font-size:clamp(12px,1.25vw,16px);
+    }
+    .left-pause .button-label { transform:translate(-50%, -50%) rotate(90deg); }
+    .right-pause .button-label { transform:translate(-50%, -50%) rotate(-90deg); }
+
+    .role-badge {
+      width:100%; min-height:34px; border-radius:999px; border:1px solid rgba(255,255,255,.18);
+      display:grid; place-items:center; font-size:clamp(11px,1.1vw,14px); font-weight:900;
+      color:var(--text); background:rgba(255,255,255,.06); flex:0 0 auto;
+    }
+    .role-badge.is-first { background:rgba(37,99,235,.9); }
+    .role-badge.is-second { background:rgba(124,58,237,.88); }
+    .role-badge:empty { display:none; }
+
+    .time-card {
+      flex:1 1 auto; min-height:0; position:relative; overflow:hidden;
+      border-radius:14px; background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.08);
+    }
+    .time-rotor {
+      position:absolute; left:50%; top:50%;
+      width:148px; height:58px; margin-left:-74px; margin-top:-29px;
+      display:grid; place-items:center; gap:2px;
+    }
+    .left-time .time-rotor { transform:rotate(90deg); }
+    .right-time .time-rotor { transform:rotate(-90deg); }
+    .small-label, .match-label { color:var(--muted); font-weight:800; letter-spacing:.08em; }
+    .time-rotor .small-label { font-size:clamp(9px, .95vw, 12px); }
+    .used-time { font-variant-numeric:tabular-nums; font-size:clamp(28px,3.8vw,46px); font-weight:950; line-height:1; white-space:nowrap; letter-spacing:.03em; }
+    .timer-text {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      line-height:1;
+      white-space:nowrap;
+    }
+    .timer-colon {
+      display:inline-block;
+      transform:translateY(-0.075em);
+      margin:0 .045em;
+    }
+
+
+    .match-label { flex:0 0 auto; font-size:clamp(14px,1.7vw,22px); }
+    .main-timer {
+      width:100%; flex:1 1 auto; min-height:0; display:grid; place-items:center; overflow:hidden;
+      font-variant-numeric:tabular-nums; font-size:clamp(78px,12.8vw,150px); font-weight:950; line-height:.92; letter-spacing:-.025em; white-space:nowrap;
+      text-shadow:0 6px 18px rgba(0,0,0,.24);
+    }
+    .main-timer.is-warning { color:#fbbf24; }
+    .main-timer.is-finished { color:#f87171; }
+    .status-text {
+      flex:0 0 auto; min-height:18px; color:var(--muted); font-size:clamp(10px,1.15vw,15px); font-weight:800; line-height:1.35;
+    }
+    .center-actions { width:100%; display:grid; gap:8px; margin-top:8px; }
+    .reset-button, .flip-button {
+      width:100%; min-height:38px; border-radius:14px; font-size:clamp(13px,1.45vw,18px); border:1px solid var(--line);
+    }
+    .reset-button { background:rgba(127,29,29,.72); }
+    .flip-button { background:rgba(59,78,112,.88); }
+
+    button:disabled { cursor:default; opacity:.34; box-shadow:none; }
+    button.label-hidden .button-label { visibility:hidden; }
+
+    .format-buttons {
+      flex: 0 0 auto;
+      display:flex;
+      gap:8px;
+      justify-content:center;
+      align-items:center;
+      margin-top:5px;
+    }
+    .format-button {
+      min-width:66px;
+      min-height:30px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.20);
+      background:rgba(255,255,255,.07);
+      color:rgba(255,255,255,.78);
+      font-size:clamp(12px,1.35vw,17px);
+      font-weight:950;
+      letter-spacing:.05em;
+      box-shadow:inset 0 -2px 0 rgba(0,0,0,.18);
+    }
+    .format-button.is-selected {
+      border-color:rgba(147,197,253,.80);
+      background:rgba(49,85,246,.82);
+      color:#fff;
+    }
+    .format-button:disabled {
+      opacity:.78;
+      cursor:default;
+    }
+
+    .end-dialog-overlay {
+      position:absolute;
+      inset:0;
+      z-index:50;
+      display:grid;
+      place-items:center;
+      padding:24px;
+      background:rgba(0,0,0,.42);
+      backdrop-filter:blur(3px);
+    }
+    .end-dialog-overlay[hidden] {
+      display:none;
+    }
+    .end-dialog {
+      width:min(82vw, 460px);
+      border-radius:24px;
+      border:1px solid rgba(255,255,255,.18);
+      background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.03)), #172033;
+      box-shadow:0 22px 70px rgba(0,0,0,.45);
+      padding:24px 26px 22px;
+      text-align:center;
+    }
+    .end-dialog-message {
+      font-size:clamp(18px, 2.6vw, 30px);
+      line-height:1.55;
+      font-weight:900;
+      letter-spacing:.02em;
+      color:var(--text);
+      margin-bottom:18px;
+    }
+    .end-dialog-actions {
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      align-items:center;
+    }
+    .end-dialog-ok,
+    .end-dialog-cancel {
+      min-width:150px;
+      min-height:46px;
+      border:0;
+      border-radius:999px;
+      color:var(--text);
+      font-size:clamp(16px, 2vw, 24px);
+      font-weight:950;
+      letter-spacing:.08em;
+      box-shadow:inset 0 -3px 0 rgba(0,0,0,.22);
+    }
+    .end-dialog-ok {
+      background:var(--blue);
+    }
+    .end-dialog-cancel {
+      background:rgba(71,85,105,.92);
+    }
+    .end-dialog-cancel[hidden] {
+      display:none;
+    }
+    .portrait-notice { display:none; }
+
+    @media (orientation: landscape) and (max-height: 430px) {
+      .app { gap:6px; }
+      .col-time { width:clamp(50px,6vw,70px); border-radius:14px; padding:6px 4px; gap:6px; }
+      .col-pause { width:clamp(40px,4.6vw,56px); border-radius:14px; padding:4px; }
+      .col-action { width:clamp(72px,8.8vw,104px); border-radius:18px; padding:8px; }
+      .center-panel { border-radius:18px; padding:10px 14px; }
+      .big-action-button { border-radius:15px; font-size:clamp(16px,2vw,24px); }
+      .pause-button { border-radius:12px; font-size:clamp(10px,1.1vw,13px); }
+      .role-badge { min-height:28px; font-size:clamp(9px,.9vw,12px); }
+      .time-rotor { width:122px; height:48px; margin-left:-61px; margin-top:-24px; }
+      .time-rotor .small-label { font-size:clamp(8px,.82vw,10px); }
+      .used-time { font-size:clamp(22px,3vw,34px); letter-spacing:.03em; }
+      .match-label { font-size:clamp(12px,1.3vw,17px); }
+      .main-timer { font-size:clamp(64px,11.6vw,128px); letter-spacing:-.02em; }
+      .status-text { font-size:clamp(9px,.98vw,12px); }
+      .center-actions { gap:6px; margin-top:6px; }
+      .reset-button, .flip-button { min-height:30px; border-radius:12px; font-size:clamp(11px,1.15vw,14px); }
+      .format-buttons { gap:6px; margin-top:4px; }
+      .format-button { min-width:56px; min-height:26px; font-size:clamp(10px,1vw,13px); }
+    }
+
+
+    /* 回転ロックONでも横持ちで使うための疑似横向きモード。
+       iPhoneが縦画面扱いのままでも、アプリ全体を横向きキャンバスとして描画する。 */
+    @media (orientation: portrait) {
+      body {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100dvh;
+      }
+
+      .app {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        width: 100dvh;
+        height: 100dvw;
+        padding: 8px;
+        transform: translate(-50%, -50%) rotate(var(--pseudo-landscape-rotation));
+        transform-origin: center center;
+      }
+
+      .app.flipped {
+        transform: translate(-50%, -50%) rotate(calc(var(--pseudo-landscape-rotation) + 180deg));
+      }
+    }
+
+    @media (orientation: portrait) {
+      .portrait-notice {
+        display:none;
+        padding:max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+        background:var(--bg); text-align:center;
+      }
+      .portrait-card {
+        width:min(86vw,360px); padding:28px; border:1px solid var(--line); border-radius:26px; background:var(--panel); box-shadow:var(--shadow);
+        font-size:20px; line-height:1.7; font-weight:900;
+      }
+      .portrait-icon { font-size:52px; line-height:1; margin-bottom:12px; }
+    }
+  </style>
+</head>
+<body>
+  <main id="appRoot" class="app" aria-live="polite">
+    <section class="col-action left-action" data-player="0">
+      <button id="actionBtn0" class="big-action-button" type="button"><span class="button-label">対戦開始</span></button>
+    </section>
+    <section class="col-pause left-pause" data-player="0">
+      <button id="pauseBtn0" class="pause-button" type="button" disabled><span class="button-label">一時停止</span></button>
+    </section>
+    <section class="col-time left-time" data-player="0">
+      <div id="roleBadge0" class="role-badge" aria-label="左側の役割"></div>
+      <div class="time-card">
+        <div class="time-rotor">
+          <div id="usedTime0" class="used-time">00:00</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="center-panel">
+      <div class="format-buttons" aria-label="試合形式">
+        <button id="formatBo1Btn" class="format-button is-selected" type="button">BO1</button>
+        <button id="formatBo3Btn" class="format-button" type="button">BO3</button>
+      </div>
+      <div class="match-label">試合残り時間</div>
+      <div id="mainTimer" class="main-timer">25:00</div>
+      <div id="statusText" class="status-text">先攻側の「対戦開始」を押してください</div>
+      <div class="center-actions">
+        <button id="resetBtn" class="reset-button" type="button">リセット</button>
+        <button id="flipBtn" class="flip-button" type="button">向き反転</button>
+      </div>
+    </section>
+
+    <section class="col-time right-time" data-player="1">
+      <div id="roleBadge1" class="role-badge" aria-label="右側の役割"></div>
+      <div class="time-card">
+        <div class="time-rotor">
+          <div id="usedTime1" class="used-time">00:00</div>
+        </div>
+      </div>
+    </section>
+    <section class="col-pause right-pause" data-player="1">
+      <button id="pauseBtn1" class="pause-button" type="button" disabled><span class="button-label">一時停止</span></button>
+    </section>
+    <section class="col-action right-action" data-player="1">
+      <button id="actionBtn1" class="big-action-button" type="button"><span class="button-label">対戦開始</span></button>
+    </section>
+
+    <div id="endDialog" class="end-dialog-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="endDialogMessage">
+      <div class="end-dialog">
+        <div id="endDialogMessage" class="end-dialog-message">残り時間が0になりました。<br>試合終了です。</div>
+        <div class="end-dialog-actions">
+          <button id="endDialogCancel" class="end-dialog-cancel" type="button" hidden>キャンセル</button>
+          <button id="endDialogOk" class="end-dialog-ok" type="button">OK</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <div class="portrait-notice" aria-hidden="true">
+    <div class="portrait-card">
+      <div class="portrait-icon">↻</div>
+      <div>iPhoneの回転ロックを解除して<br>横向きで使ってください</div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+      const BO1_LENGTH_MS = 25 * 60 * 1000;
+      const BO3_LENGTH_MS = 75 * 60 * 1000;
+      const WARNING_MS = 60 * 1000;
+      const FLIP_STORAGE_KEY = 'pokeca_timer_flip_v1';
+      const state = { mode:'ready', activePlayer:null, firstPlayer:null, matchFormat:'BO1', matchLengthMs:BO1_LENGTH_MS, remainingMs:BO1_LENGTH_MS, usedMs:[0,0], lastTickAt:null, wakeLock:null, flipped:false };
+
+      let audioCtx = null;
+      let activeAlarmGain = null;
+      let activeAlarmLoopTimer = null;
+      let dialogMode = null;
+
+      function getAudioContext() {
+        if (audioCtx) return audioCtx;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return null;
+        audioCtx = new AudioContextClass();
+        return audioCtx;
+      }
+
+      function resumeAudioContext() {
+        const ctx = getAudioContext();
+        if (!ctx) return null;
+        if (ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+        return ctx;
+      }
+
+      function playTickSound() {
+        const ctx = resumeAudioContext();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+
+        function clickLayer(offset, frequency, gainPeak, duration) {
+          const t = now + offset;
+
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(frequency, t);
+
+          gain.gain.setValueAtTime(0.0001, t);
+          gain.gain.exponentialRampToValueAtTime(gainPeak, t + 0.0015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + duration + 0.006);
+        }
+
+        function noiseLayer(offset, gainPeak, duration) {
+          const t = now + offset;
+          const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * duration));
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+
+          for (let i = 0; i < bufferSize; i += 1) {
+            const fade = 1 - i / bufferSize;
+            data[i] = (Math.random() * 2 - 1) * fade * fade;
+          }
+
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+
+          const highpass = ctx.createBiquadFilter();
+          highpass.type = 'highpass';
+          highpass.frequency.setValueAtTime(1800, t);
+
+          const bandpass = ctx.createBiquadFilter();
+          bandpass.type = 'bandpass';
+          bandpass.frequency.setValueAtTime(3600, t);
+          bandpass.Q.setValueAtTime(4.5, t);
+
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.0001, t);
+          gain.gain.exponentialRampToValueAtTime(gainPeak, t + 0.001);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+
+          noise.connect(highpass);
+          highpass.connect(bandpass);
+          bandpass.connect(gain);
+          gain.connect(ctx.destination);
+          noise.start(t);
+          noise.stop(t + duration + 0.004);
+        }
+
+        // 低音の余韻を減らし、短い高音成分で「カチッ」に寄せる。
+        clickLayer(0, 2400, 0.18, 0.018);
+        clickLayer(0.006, 3600, 0.08, 0.014);
+        noiseLayer(0, 0.20, 0.016);
+      }
+
+      function stopAlarmSound() {
+        if (activeAlarmLoopTimer) {
+          clearInterval(activeAlarmLoopTimer);
+          activeAlarmLoopTimer = null;
+        }
+
+        const ctx = audioCtx;
+        const gain = activeAlarmGain;
+        activeAlarmGain = null;
+
+        if (!ctx || !gain) return;
+
+        const now = ctx.currentTime;
+        try {
+          gain.gain.cancelScheduledValues(now);
+          gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+          setTimeout(() => {
+            try { gain.disconnect(); } catch (_) {}
+          }, 90);
+        } catch (_) {
+          try { gain.disconnect(); } catch (__) {}
+        }
+      }
+
+      function playAlarmSound() {
+        const ctx = resumeAudioContext();
+        if (!ctx) return;
+
+        stopAlarmSound();
+
+        const masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(0.95, ctx.currentTime);
+        masterGain.connect(ctx.destination);
+        activeAlarmGain = masterGain;
+
+        const interval = 0.24;
+        const duration = 0.18;
+        const blockCount = 4;
+        const blockMs = interval * blockCount * 1000;
+
+        function softBeep(time, frequency, peakGain) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(frequency, time);
+          osc.frequency.exponentialRampToValueAtTime(frequency * 0.99, time + duration);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1700, time);
+          filter.Q.setValueAtTime(0.7, time);
+
+          gain.gain.setValueAtTime(0.0001, time);
+          gain.gain.linearRampToValueAtTime(peakGain, time + 0.018);
+          gain.gain.setValueAtTime(peakGain, time + duration - 0.055);
+          gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(masterGain);
+          osc.start(time);
+          osc.stop(time + duration + 0.03);
+        }
+
+        function scheduleAlarmBlock() {
+          if (activeAlarmGain !== masterGain) return;
+
+          const start = ctx.currentTime + 0.02;
+          for (let i = 0; i < blockCount; i += 1) {
+            const t = start + i * interval;
+            const freq = i % 2 === 0 ? 740 : 587;
+            softBeep(t, freq, 0.15);
+          }
+        }
+
+        // OKが押されるまで、柔らかい音色のまま速めのテンポで鳴り続ける。
+        scheduleAlarmBlock();
+        activeAlarmLoopTimer = setInterval(scheduleAlarmBlock, blockMs);
+      }
+
+      const els = {
+        appRoot: document.getElementById('appRoot'),
+        mainTimer: document.getElementById('mainTimer'),
+        statusText: document.getElementById('statusText'),
+        resetBtn: document.getElementById('resetBtn'),
+        flipBtn: document.getElementById('flipBtn'),
+        formatBo1Btn: document.getElementById('formatBo1Btn'),
+        formatBo3Btn: document.getElementById('formatBo3Btn'),
+        endDialog: document.getElementById('endDialog'),
+        endDialogMessage: document.getElementById('endDialogMessage'),
+        endDialogOk: document.getElementById('endDialogOk'),
+        endDialogCancel: document.getElementById('endDialogCancel'),
+        usedTime: [document.getElementById('usedTime0'), document.getElementById('usedTime1')],
+        pauseBtn: [document.getElementById('pauseBtn0'), document.getElementById('pauseBtn1')],
+        actionBtn: [document.getElementById('actionBtn0'), document.getElementById('actionBtn1')],
+        roleBadge: [document.getElementById('roleBadge0'), document.getElementById('roleBadge1')],
+        timeZone: Array.from(document.querySelectorAll('.col-time')),
+        pauseZone: Array.from(document.querySelectorAll('.col-pause')),
+        actionZone: Array.from(document.querySelectorAll('.col-action')),
+      };
+
+      function loadFlipState(){ try{ state.flipped = localStorage.getItem(FLIP_STORAGE_KEY)==='1'; }catch(_){ state.flipped=false; } }
+      function saveFlipState(){ try{ localStorage.setItem(FLIP_STORAGE_KEY, state.flipped ? '1' : '0'); }catch(_){ } }
+      function clampMs(v){ return Math.max(0, Math.round(v)); }
+      function formatTimeParts(ms, mode){
+        const s = mode === 'ceil' ? Math.ceil(clampMs(ms)/1000) : Math.floor(clampMs(ms)/1000);
+        const m = Math.floor(s/60);
+        const sec = s % 60;
+        return { min:String(m).padStart(2,'0'), sec:String(sec).padStart(2,'0') };
+      }
+      function timeHtml(ms, mode){
+        const t = formatTimeParts(ms, mode);
+        return `<span class="timer-text"><span class="timer-num">${t.min}</span><span class="timer-colon">:</span><span class="timer-num">${t.sec}</span></span>`;
+      }
+      function playerRole(i){ if(state.firstPlayer==null) return ''; return state.firstPlayer===i ? '先攻' : '後攻'; }
+      function activeRoleText(){ if(state.activePlayer==null || state.firstPlayer==null) return ''; return playerRole(state.activePlayer); }
+      function setButtonLabel(button, label, hide=false){ const span=button.querySelector('.button-label'); span.textContent=label; button.classList.toggle('label-hidden', hide); }
+      function setAction(i, label, enabled, hidden=false, resume=false){ const b=els.actionBtn[i]; b.disabled=!enabled; b.classList.toggle('is-resume', resume); setButtonLabel(b, label, hidden); }
+      function setPause(i, enabled, hidden=false){ const b=els.pauseBtn[i]; b.disabled=!enabled; setButtonLabel(b, '一時停止', hidden); }
+      function setMatchFormat(format) {
+        if (state.mode !== 'ready') return;
+        state.matchFormat = format;
+        state.matchLengthMs = format === 'BO3' ? BO3_LENGTH_MS : BO1_LENGTH_MS;
+        state.remainingMs = state.matchLengthMs;
+        render();
+      }
+      function renderFormatButtons() {
+        const isReady = state.mode === 'ready';
+        els.formatBo1Btn.disabled = !isReady;
+        els.formatBo3Btn.disabled = !isReady;
+        els.formatBo1Btn.classList.toggle('is-selected', state.matchFormat === 'BO1');
+        els.formatBo3Btn.classList.toggle('is-selected', state.matchFormat === 'BO3');
+        els.formatBo1Btn.setAttribute('aria-pressed', state.matchFormat === 'BO1' ? 'true' : 'false');
+        els.formatBo3Btn.setAttribute('aria-pressed', state.matchFormat === 'BO3' ? 'true' : 'false');
+      }
+      function renderRoleBadges(){ els.roleBadge.forEach((badge,i)=>{ const r=playerRole(i); badge.textContent=r; badge.classList.toggle('is-first', r==='先攻'); badge.classList.toggle('is-second', r==='後攻'); }); }
+      function renderActivePanels(){ for(let i=0;i<2;i++){ const active=state.activePlayer===i && state.mode==='running'; els.timeZone[i].classList.toggle('zone-active', active); els.pauseZone[i].classList.toggle('zone-active', active); els.actionZone[i].classList.toggle('zone-active', active);} }
+      function renderFlip(){ els.appRoot.classList.toggle('flipped', state.flipped); }
+      function render(){
+        els.mainTimer.innerHTML=timeHtml(state.remainingMs, 'ceil');
+        els.mainTimer.classList.toggle('is-warning', state.remainingMs>0 && state.remainingMs<=WARNING_MS);
+        els.mainTimer.classList.toggle('is-finished', state.mode==='finished');
+        els.usedTime[0].innerHTML=timeHtml(state.usedMs[0], 'floor');
+        els.usedTime[1].innerHTML=timeHtml(state.usedMs[1], 'floor');
+        renderRoleBadges(); renderActivePanels(); renderFlip(); renderFormatButtons();
+        if(state.mode==='ready'){ els.statusText.textContent='先攻側の「対戦開始」を押してください'; setAction(0,'対戦開始',true); setAction(1,'対戦開始',true); setPause(0,false); setPause(1,false); return; }
+        if(state.mode==='running'){ const other=state.activePlayer===0?1:0; els.statusText.textContent=`${activeRoleText()}のターン中`; setAction(state.activePlayer,'ターン終了',true); setAction(other,'対戦開始',false,true); setPause(0,true); setPause(1,true); return; }
+        if(state.mode==='paused'){ const other=state.activePlayer===0?1:0; els.statusText.textContent='一時停止中'; setAction(state.activePlayer,'試合再開',true,false,true); setAction(other,'対戦開始',false,true); setPause(0,false,true); setPause(1,false,true); return; }
+        if(state.mode==='finished'){ els.statusText.textContent='試合時間終了'; setAction(0,'対戦開始',false,true); setAction(1,'対戦開始',false,true); setPause(0,false,true); setPause(1,false,true); }
+      }
+      async function requestWakeLock(){ if(!('wakeLock' in navigator) || document.visibilityState!=='visible') return; try{ state.wakeLock=await navigator.wakeLock.request('screen'); state.wakeLock.addEventListener('release',()=>{ state.wakeLock=null;}); }catch(_){ state.wakeLock=null; } }
+      async function releaseWakeLock(){ if(!state.wakeLock) return; try{ await state.wakeLock.release(); }catch(_){ } finally { state.wakeLock=null; } }
+      function showDialog(mode, messageHtml, options = {}) {
+        dialogMode = mode;
+        els.endDialogMessage.innerHTML = messageHtml;
+        els.endDialogOk.textContent = options.okText || 'OK';
+        els.endDialogCancel.textContent = options.cancelText || 'キャンセル';
+        els.endDialogCancel.hidden = !options.showCancel;
+        els.endDialog.hidden = false;
+        setTimeout(() => {
+          try { els.endDialogOk.focus(); } catch (_) {}
+        }, 0);
+      }
+      function showEndDialog() {
+        showDialog('end', '残り時間が0になりました。<br>試合終了です。');
+      }
+      function showResetDialog() {
+        showDialog('reset', 'タイマーをリセットしますか？', { showCancel:true, okText:'OK', cancelText:'キャンセル' });
+      }
+      function hideEndDialog() {
+        els.endDialog.hidden = true;
+        dialogMode = null;
+      }
+      function performReset() {
+        stopAlarmSound();
+        hideEndDialog();
+        state.mode='ready';
+        state.activePlayer=null;
+        state.firstPlayer=null;
+        state.remainingMs=state.matchLengthMs;
+        state.usedMs=[0,0];
+        state.lastTickAt=null;
+        releaseWakeLock();
+        render();
+      }
+      function handleDialogOk() {
+        if (dialogMode === 'reset') {
+          performReset();
+          return;
+        }
+        stopAlarmSound();
+        hideEndDialog();
+      }
+      function handleDialogCancel() {
+        hideEndDialog();
+      }
+      function finishMatch(){ state.mode='finished'; state.remainingMs=0; state.lastTickAt=null; playAlarmSound(); showEndDialog(); releaseWakeLock(); if(navigator.vibrate) navigator.vibrate([180,80,180,80,260]); }
+      function applyElapsed(now){ if(state.mode!=='running' || state.lastTickAt==null || state.activePlayer==null) return; const e=Math.max(0, now-state.lastTickAt); state.lastTickAt=now; state.remainingMs=clampMs(state.remainingMs-e); state.usedMs[state.activePlayer]=clampMs(state.usedMs[state.activePlayer]+e); if(state.remainingMs<=0) finishMatch(); }
+      function tick(){ applyElapsed(Date.now()); render(); requestAnimationFrame(tick); }
+      function startMatch(i){ if(state.mode!=='ready') return; playTickSound(); state.mode='running'; state.activePlayer=i; state.firstPlayer=i; state.lastTickAt=Date.now(); requestWakeLock(); render(); }
+      function endTurn(){ if(state.mode!=='running' || state.activePlayer==null) return; playTickSound(); applyElapsed(Date.now()); if(state.mode==='finished') return; state.activePlayer=state.activePlayer===0?1:0; state.lastTickAt=Date.now(); render(); }
+      function pauseMatch(){ if(state.mode!=='running') return; applyElapsed(Date.now()); if(state.mode==='finished') return; state.mode='paused'; state.lastTickAt=null; releaseWakeLock(); render(); }
+      function resumeMatch(){ if(state.mode!=='paused') return; state.mode='running'; state.lastTickAt=Date.now(); requestWakeLock(); render(); }
+      function resetMatch(){ if(state.mode==='ready'){ performReset(); return; } showResetDialog(); }
+      function toggleFlip(){ state.flipped=!state.flipped; saveFlipState(); render(); }
+
+      els.actionBtn.forEach((b,i)=>b.addEventListener('click',()=>{ if(state.mode==='ready') startMatch(i); else if(state.mode==='running' && state.activePlayer===i) endTurn(); else if(state.mode==='paused' && state.activePlayer===i) resumeMatch(); }));
+      els.pauseBtn.forEach((b)=>b.addEventListener('click', pauseMatch));
+      els.resetBtn.addEventListener('click', resetMatch);
+      els.formatBo1Btn.addEventListener('click', () => setMatchFormat('BO1'));
+      els.formatBo3Btn.addEventListener('click', () => setMatchFormat('BO3'));
+      els.flipBtn.addEventListener('click', toggleFlip);
+      els.endDialogOk.addEventListener('click', handleDialogOk);
+      els.endDialogCancel.addEventListener('click', handleDialogCancel);
+      if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./service-worker.js').catch(()=>{}); }); }
+      document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && state.mode==='running'){ requestWakeLock(); } else if(document.visibilityState!=='visible'){ applyElapsed(Date.now()); releaseWakeLock(); } });
+      loadFlipState(); render(); requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>
